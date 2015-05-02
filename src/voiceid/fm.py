@@ -342,7 +342,7 @@ def seg2trim(filebasename):
                 if sys.platform == 'win32':
                     mydir = filebasename +'/'+ clust
                 os.makedirs(mydir)
-            except os.error, err:
+            except os.error as err:
                 if err.errno == 17:
                     pass
                 else:
@@ -442,8 +442,7 @@ def srt2subnames(filebasename, key_value):
     file_original_subtitle = open(filebasename + ".srt")
     original_subtitle = file_original_subtitle.read()
     file_original_subtitle.close()
-    key_value = dict(map(lambda (key, value): (str(key) + "\n", value),
-                         key_value.items()))
+    key_value = dict([(str(key_value1[0]) + "\n", key_value1[1]) for key_value1 in list(key_value.items())])
     text = replace_words(original_subtitle, key_value)
     out_file = filebasename + ".ident.srt"
     # create a output file
@@ -460,14 +459,14 @@ def file2trim(filename):
     :type filename: string
     :param filename: the input file audio/video"""
     if not CONFIGURATION.QUIET_MODE:
-        print "*** converting video to wav ***"
+        print("*** converting video to wav ***")
     file2wav(filename)
     file_basename = os.path.splitext(filename)[0]
     if not CONFIGURATION.QUIET_MODE:
-        print "*** diarization ***"
+        print("*** diarization ***")
     diarization(file_basename)
     if not CONFIGURATION.QUIET_MODE:
-        print "*** trim ***"
+        print("*** trim ***")
     seg2trim(file_basename)
 
 

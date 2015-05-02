@@ -267,7 +267,7 @@ class Cluster(object):
         _speaker = 'unknown'
         distance = self.get_distance()
         
-        if len(self.speakers.values()) >1:
+        if len(list(self.speakers.values())) >1:
             mean_distance = self.get_m_distance()
         else:
             mean_distance = .5
@@ -295,8 +295,8 @@ class Cluster(object):
         :rtype: array of tuple
         :returns: an array of five most probable speakers represented by
             ordered tuples of the form (speaker, score) ordered by score."""
-        return sorted(self.speakers.iteritems(),
-                      key=lambda (key, val): (val, key),
+        return sorted(iter(self.speakers.items()),
+                      key=lambda key_val: (key_val[1], key_val[0]),
                       reverse=True)[:5]
 
     def get_gender(self):
@@ -322,7 +322,7 @@ class Cluster(object):
     def get_distance(self):
         """Get the distance between the best speaker score and the closest
         speaker score."""
-        values = self.speakers.values()
+        values = list(self.speakers.values())
         values.sort(reverse=True)
         try:
             return abs(values[1]) - abs(values[0])
@@ -434,9 +434,9 @@ class Cluster(object):
     def print_segments(self):
         """Print cluster timing."""
         for seg in self._segments:
-            print "%s to %s" % (
+            print("%s to %s" % (
                         utils.humanize_time(float(seg.get_start()) / 100),
-                        utils.humanize_time(float(seg.get_end()) / 100))
+                        utils.humanize_time(float(seg.get_end()) / 100)))
 
     def _get_seg_repr(self, set_speakers=True):
         """String representation of the segment"""
@@ -679,8 +679,8 @@ class Voiceid(object):
          
     def _verify_duration(self):
         for clu in self._clusters:
-            print clu
-            print self._clusters[clu]._verify_duration()
+            print(clu)
+            print(self._clusters[clu]._verify_duration())
         
 
     def get_speakers_map(self):
@@ -717,7 +717,7 @@ class Voiceid(object):
         if self._single:
             try:
                 os.mkdir(self.get_file_basename())
-            except OSError, err:
+            except OSError as err:
                 if err.errno != 17:
                     raise err
             fm._silence_segmentation(self._basename)
@@ -813,13 +813,13 @@ class Voiceid(object):
             for r in result[spk]:
                 self[cluster].add_speaker(r, result[spk][r])
         if not quiet:
-            print ""
+            print("")
         speakers = {}
         for clu in self._clusters:
             if not quiet:
                 if interactive:
-                    print "**********************************"
-                    print "speaker ", clu
+                    print("**********************************")
+                    print("speaker ", clu)
                     self[clu].print_segments()
             speakers[clu] = self[clu].get_best_speaker()
             self[clu].set_speaker(speakers[clu])
@@ -945,7 +945,7 @@ class Voiceid(object):
                     c_c2 = all_clusters[cl_2]
                     # if two clusters have the same speaker and have different 
                     # cluster identifiers
-                    if cl_1 != cl_2 and c_c1.get_speaker() != 'unknown' and c_c1.get_speaker() == c_c2.get_speaker() and self._clusters.has_key(cl_1) and self._clusters.has_key(cl_2):
+                    if cl_1 != cl_2 and c_c1.get_speaker() != 'unknown' and c_c1.get_speaker() == c_c2.get_speaker() and cl_1 in self._clusters and cl_2 in self._clusters:
                         changed = True
                         # merge the clusters an record that something changed
                         self._merge_clusters(cl_1, cl_2)
@@ -983,20 +983,20 @@ class Voiceid(object):
         self._status = 0
         start_time = time.time()
         if not quiet:
-            print self.get_working_status()
+            print(self.get_working_status())
         # convert your input file to a Wave file having some tech requirements
         self._to_wav()
         if not quiet:
-            print self.get_working_status()
+            print(self.get_working_status())
         self.diarization()  # start diarization over your wave file
         diarization_time = time.time() - start_time
         if not quiet:
-            print self.get_working_status()
+            print(self.get_working_status())
         # trim the original wave file according to segs given by diarization
         self._to_trim()
         self._status = 3
         if not quiet:
-            print self.get_working_status()
+            print(self.get_working_status())
         # search for every identified cluster if there is 
         # a relative model voice in the db
         self._cluster_matching(diarization_time, interactive, quiet, thrd_n,
@@ -1016,18 +1016,18 @@ class Voiceid(object):
         total_time = time.time() - start_t
         self._set_time(total_time)
         if not quiet:
-            print self.get_working_status()
+            print(self.get_working_status())
         if interactive:
-            print "Updating db"
+            print("Updating db")
             self.update_db(thrd_n, automerge=True)
         if not interactive:
             if not quiet:
                 for clu in self._clusters:
-                    print "**********************************"
-                    print "speaker ", clu
+                    print("**********************************")
+                    print("speaker ", clu)
                     for speaker in self[clu].speakers:
-                        print "\t %s %s" % (speaker, self[clu].speakers[speaker])
-                    print '\t ------------------------'
+                        print("\t %s %s" % (speaker, self[clu].speakers[speaker]))
+                    print('\t ------------------------')
                     distance = self[clu].get_distance()
                     try:
                         mean = self[clu].get_mean()
@@ -1035,8 +1035,8 @@ class Voiceid(object):
                     except (KeyError, ValueError):
                         mean = 0
                         m_distance = 0
-                    print """\t best speaker: %s (distance from 2nd %f - mean %f - distance from mean %f ) """ % (self[clu],
-                                                              distance, mean, m_distance)
+                    print("""\t best speaker: %s (distance from 2nd %f - mean %f - distance from mean %f ) """ % (self[clu],
+                                                              distance, mean, m_distance))
                 speakers_in_db = self.get_db().get_speakers()
                 tot_voices = len(speakers_in_db['F']) + \
                     len(speakers_in_db['M']) + len(speakers_in_db['U'])
@@ -1044,22 +1044,22 @@ class Voiceid(object):
                 if diarization_time != None:
                     voice_time = float(total_time - diarization_time)
                     t_f_s = voice_time / len(speakers_in_db)
-                    print """\nwav duration: %s\nall done in %dsec (%s) (diarization %dsec time:%s )  with %s threads and %d voices in db (%f) """ % (utils.humanize_time(sec),
+                    print("""\nwav duration: %s\nall done in %dsec (%s) (diarization %dsec time:%s )  with %s threads and %d voices in db (%f) """ % (utils.humanize_time(sec),
                                                                                                                                                   total_time,
                                                                                                                                                   utils.humanize_time(total_time),
                                                                                                                                                   diarization_time,
                                                                                                                                                   utils.humanize_time(diarization_time),
                                                                                                                                                   thrd_n,
                                                                                                                                                   tot_voices,
-                                                                                                                                                  t_f_s)
+                                                                                                                                                  t_f_s))
                 else:
-                    print """\nwav duration: %s\nmatch clusters done in %dsec (%s)  with %s threads and %d voices in db """ % (utils.humanize_time(sec),
+                    print("""\nwav duration: %s\nmatch clusters done in %dsec (%s)  with %s threads and %d voices in db """ % (utils.humanize_time(sec),
                                                                                                                                                   total_time,
 
                                                                                                                                                   utils.humanize_time(total_time),
                                                                                                                                                   thrd_n,
                                                                                                                                                   tot_voices
-                                                                                                                                                )
+                                                                                                                                                ))
 
     def _match_voice_wrapper(self, cluster, wav_name, db_entry, gender):
         """A wrapper to match the voices each in a different Thread."""
@@ -1151,7 +1151,7 @@ class Voiceid(object):
                     utils.ensure_file_exists(old_wav_name)
                 
                 except OSError:
-                    print 'WARNING: error renaming some wave files' 
+                    print('WARNING: error renaming some wave files') 
                 try:
                     utils.ensure_file_exists(old_b_file + '.seg')
                 except IOError:
@@ -1180,7 +1180,7 @@ class Voiceid(object):
                         os.remove("%s" % old_wav_name)
                         os.remove(old_b_file + '.seg')
                 except OSError:
-                    print 'WARNING: error deleting some intermediate files'
+                    print('WARNING: error deleting some intermediate files')
             
             #end _build_model_wrapper
 
@@ -1188,7 +1188,7 @@ class Voiceid(object):
         if not os.path.exists(self.get_file_basename()+'.seg'): self.generate_seg_file(set_speakers=False)
            
             
-        for clu in self._clusters.values():
+        for clu in list(self._clusters.values()):
             if clu.up_to_date == False:
                 current_speaker = clu.get_speaker()
                 old_s = clu.get_best_speaker()
@@ -1205,7 +1205,7 @@ class Voiceid(object):
                                     if abs(abs(s_score) - abs(c_s_score)) < 0.07:
                                         old_s = s
                     except:
-                        print "updatedb "+str(clu.speakers)
+                        print("updatedb "+str(clu.speakers))
 #                print clu.speakers    
 #                print "current_speaker out "+current_speaker
 #                print "old_s  "+old_s
@@ -1230,7 +1230,7 @@ class Voiceid(object):
                     utils.ensure_file_exists(wav_name)
                
                 except OSError:
-                    print 'WARNING: error renaming some wave files' 
+                    print('WARNING: error renaming some wave files') 
                 try:
                     utils.ensure_file_exists(b_file + '.seg')
                 except IOError:
@@ -1395,7 +1395,7 @@ class Voiceid(object):
             try:
                 fm.seg2srt(self.get_file_basename() + '.seg')
             except:
-                print "File seg do not exist!"            
+                print("File seg do not exist!")            
             self.generate_seg_file(False)
 #             if not CONFIGURATION.KEEP_INTERMEDIATE_FILES:
 #                 os.remove(self.get_file_basename() + '.seg')
@@ -1479,15 +1479,15 @@ def _interactive_training(filebasename, cluster, identifier):
         info = """The system has not identified this speaker!"""
     else:
         info = "The system identified this speaker as '" + identifier + "'!"
-    print info
+    print(info)
     while True:
         try:
-            char = raw_input("\n 1) Listen\n 2) Set " + 
+            char = input("\n 1) Listen\n 2) Set " + 
             " name\n Press enter to skip\n> ")
         except EOFError:
-            print ''
+            print('')
             continue
-        print ''
+        print('')
         if prc != None and prc.poll() == None:
             prc.kill()
         if char == "1":
@@ -1499,7 +1499,7 @@ def _interactive_training(filebasename, cluster, identifier):
             if sys.platform == 'win32':
                 commandline = "vlc " + str(wrd)
                 commandline = commandline.replace('\\', '\\\\')
-            print "  Listening %s..." % cluster
+            print("  Listening %s..." % cluster)
             args = shlex.split(commandline)
             prc = subprocess.Popen(args, stdin=CONFIGURATION.output_redirect,
                                    stdout=CONFIGURATION.output_redirect,
@@ -1509,16 +1509,16 @@ def _interactive_training(filebasename, cluster, identifier):
         if char == "2":
             menu = False
             while not menu:
-                name = raw_input("Type speaker name "
+                name = input("Type speaker name "
                         + "or leave blank for unknown speaker: ")
                 while True:
                     if len(name) == 0:
                         name = "unknown"
                     if not name.isalnum():
-                        print 'No blank, dash or special chars allowed! Retry'
+                        print('No blank, dash or special chars allowed! Retry')
 #                        menu = True
                         break
-                    okk = raw_input("Save as '" + name + "'? [Y/n/m] ")
+                    okk = input("Save as '" + name + "'? [Y/n/m] ")
                     if okk in ('y', 'ye', 'yes', ''):
                         return name
                     if okk in ('n', 'no', 'nop', 'nope'):
@@ -1527,9 +1527,9 @@ def _interactive_training(filebasename, cluster, identifier):
                         menu = True
                         break
                 if not menu:
-                    print "Yes, no or menu, please!"
+                    print("Yes, no or menu, please!")
             continue
         if char == "":
             return identifier
-        print "Type 1, 2 or enter to skip, please"
+        print("Type 1, 2 or enter to skip, please")
 

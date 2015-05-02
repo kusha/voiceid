@@ -375,8 +375,8 @@ class GMMVoiceDB(VoiceDB):
                       gender + '.' + identifier + '.gmm', cls)
             
         except  DivisionByZero: #ValueError, e:
-            print "ValueError in MATCH_VOICE"
-            print "tring to fix... ", #(wave_basename, identifier + '.gmm',
+            print("ValueError in MATCH_VOICE")
+            print("tring to fix... ", end=' ') #(wave_basename, identifier + '.gmm',
                      # gender, self.get_path())
             raise e         
             fm._train_init(wave_basename)
@@ -510,31 +510,31 @@ class GMMVoiceDB(VoiceDB):
             try:
                 c = res[wave_key]
                 
-            except (NameError , KeyError, AttributeError, TypeError), e:
+            except (NameError , KeyError, AttributeError, TypeError) as e:
                 
-                print " c = res[wave_key] missing out[" + thr + "]"
-                print e
-                print e.__dict__
-                print e.args
+                print(" c = res[wave_key] missing out[" + thr + "]")
+                print(e)
+                print(e.__dict__)
+                print(e.args)
             try:
                 c.update(arr)
                 
-            except (NameError , KeyError, AttributeError, TypeError), e:
+            except (NameError , KeyError, AttributeError, TypeError) as e:
                 
-                print "c.update(arr) missing out[" + thr + "]"
-                print e
-                print c
-                print "arr " + str(arr)
-                print e.__dict__
-                print e.args
+                print("c.update(arr) missing out[" + thr + "]")
+                print(e)
+                print(c)
+                print("arr " + str(arr))
+                print(e.__dict__)
+                print(e.args)
             try:
                 res[wave_key] = c
                 
-            except (NameError , KeyError, AttributeError, TypeError), e:
+            except (NameError , KeyError, AttributeError, TypeError) as e:
                 
-                print "res[wave_key] = c missing out[" + thr + "]"
-                print e
-                print e.__dict__
-                print e.args
+                print("res[wave_key] = c missing out[" + thr + "]")
+                print(e)
+                print(e.__dict__)
+                print(e.args)
             
         return res

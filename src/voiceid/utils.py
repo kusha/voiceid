@@ -119,8 +119,8 @@ def is_good_wave(filename):
         w_file = wave.open(filename)
         par = w_file.getparams()
         w_file.close()
-    except wave.Error, exc:
-        print exc
+    except wave.Error as exc:
+        print(exc)
         return False
     if par[:3] == (1, 2, 16000) and par[-1:] == ('not compressed',):
         return True
@@ -141,8 +141,8 @@ def check_deps():
 #            + " %s (take a look to the CONFIGURATION, DB_DIR parameter)" 
 #            % CONFIGURATION.DB_DIR)
     if os.listdir(CONFIGURATION.DB_DIR) == []:
-        print("WARNING: Gmm db directory found in %s is empty" 
-                % CONFIGURATION.DB_DIR)
+        print(("WARNING: Gmm db directory found in %s is empty" 
+                % CONFIGURATION.DB_DIR))
     if not os.path.exists(dir_m):
         os.makedirs(dir_m)
     if not os.path.exists(dir_f):
