@@ -95,21 +95,21 @@ def merge_gmms(input_files, output_file):
     :type output_file: string
     :param output_file: the merged gmm output file"""
     num_gmm = 0
-    gmms = ''
+    gmms = b''
     for ifile in input_files:
         try:
             current_f = open(ifile, 'rb')
         except (IOError, OSError):
             continue
         kind = current_f.read(8)
-        if kind != 'GMMVECT_':
+        if kind != b'GMMVECT_':
             raise Exception('different kinds of models!')
         
         line = current_f.read(4)
         num = struct.unpack('>i', line)
         num_gmm += int(num[0])
         byte = current_f.read(1)
-        all_other = ""
+        all_other = b""
         
         while byte:
             # Do stuff with byte.
@@ -120,8 +120,8 @@ def merge_gmms(input_files, output_file):
         current_f.close()
 
     num_gmm_string = struct.pack('>i', num_gmm)
-    new_gmm = open(output_file, 'w')
-    new_gmm.write("GMMVECT_")
+    new_gmm = open(output_file, 'wb')
+    new_gmm.write(b"GMMVECT_")
     new_gmm.write(num_gmm_string)
     new_gmm.write(gmms)
 
@@ -156,7 +156,7 @@ def _read_gaussian(g_file):
     """Read a gaussian in binary format"""
     full = 0
     g_key = g_file.read(8)     # read string of 8bytes kind
-    if g_key != 'GAUSS___':
+    if g_key != b'GAUSS___':
         raise Exception("Error: the gaussian is not"
                         + " of GAUSS___ key  (%s)" % g_key)
     g_id = g_file.read(4)
@@ -192,7 +192,7 @@ def _read_gaussian_container(g_file):
     """Read a gaussian container in a binary format"""
     # gaussian container
     chk = g_file.read(8)   # read string of 8bytes
-    if chk != "GAUSSVEC":
+    if chk != b"GAUSSVEC":
         raise Exception("Error: the gaussian container" +
                         " is not of GAUSSVEC kind %s" % chk)
     gcs = g_file.read(4)   # readint 4bytes representing the size of
@@ -208,7 +208,7 @@ def _read_gmm(g_file):
     myfile = {}
     # single gmm
     kind = g_file.read(8)     # read string of 8bytes kind
-    if kind != "GMM_____":
+    if kind != b"GMM_____":
         raise Exception("Error: Gmm section doesn't match GMM_____ kind")
     hash_ = g_file.read(4)  # readint 4bytes representing the hash (compatib)
     length = g_file.read(4)  # readint 4bytes representing the name length
@@ -234,10 +234,9 @@ def split_gmm(input_file, output_dir=None):
     :type output_dir: string
     :param output_dir: the directory where is splitted the gmm input file"""
 
-
     g_file = open(input_file, 'rb')
     key = g_file.read(8)
-    if key != 'GMMVECT_':  # gmm container
+    if key != b'GMMVECT_':  # gmm container
         raise Exception('Error: Not a GMMVECT_ file!')
 
     size = g_file.read(4)
@@ -254,7 +253,7 @@ def split_gmm(input_file, output_dir=None):
         basedir = output_dir
         for g_file in files:
             newname = os.path.join(basedir, "%s%04d.gmm" % (filename, index))
-            gmm_f = open(newname, 'w')
+            gmm_f = open(newname, 'wb')
             gmm_f.write(main_header + g_file['header'] + g_file['content'])
             gmm_f.close()
             index += 1

@@ -611,9 +611,8 @@ class Voiceid(object):
                 new_file += char
         try:
             shutil.copy(filename, new_file)
-        except shutil.Error, err:
-            msg = "`%s` and `%s` are the same file" % (filename, new_file)
-            if  str(err) == msg:
+        except shutil.Error as err:
+            if isinstance(err, shutil.SameFileError):
                 pass
             else:
                 raise err

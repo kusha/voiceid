@@ -166,7 +166,7 @@ class GMMVoiceDB(VoiceDB):
                 os.makedirs(path)
             self._speakermodels[gen] = [f for f in dir_ if f.endswith('.gmm')]
 
-    def add_model(self, basefilename, identifier, gender=None, score=None):
+    def add_model(self, basefilename, identifier, gender=None, score=0.0):
         """Add a gmm model to db.
 
         :type basefilename: string
