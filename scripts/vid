@@ -1,0 +1,180 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+#############################################################################
+#
+# VoiceID, Copyright (C) 2011-2012, Sardegna Ricerche.
+# Email: labcontdigit@sardegnaricerche.it, michela.fancello@crs4.it,
+#        mauro.mereu@crs4.it
+# Web: http://code.google.com/p/voiceid
+# Authors: Michela Fancello, Mauro Mereu
+#
+# This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#############################################################################
+from voiceid import utils, db, sr, fm, VConf
+import multiprocessing
+import optparse
+import os
+import shutil
+import sys
+"""
+VoiceID is a speaker recognition/identification system written in Python,
+based on the
+`LIUM Speaker Diarization <http://lium3.univ-lemans.fr/diarization/doku.php>`_
+framework.
+
+VoiceID can process video or audio files to identify in which slices of
+time there is a person speaking (diarization); then it examines all those
+segments to identify who is speaking. To do so uses a voice models
+database.
+
+To create the database you can do a "training phase" using the script ``vid``
+in interactive mode, by assigning a label to the "unknown" speakers, or
+you can also build yourself manually the speaker models and put in the db
+using the scripts to create the gmm files."""
+
+__version__ = '$Rev: 268 $'
+
+
+configuration = VConf()
+
+
+def _multiargs_callback(option, opt_str, value, parser):
+    """ Create an array from multiple args"""
+    if len(parser.rargs) == 0:
+        parser.error("incorrect number of arguments")
+    args = []
+    for arg in parser.rargs:
+        if arg[0] != "-":
+            args.append(arg)
+        else:
+            del parser.rargs[:len(args)]
+            break
+    if getattr(parser.values, option.dest):
+        args.extend(getattr(parser.values, option.dest))
+    setattr(parser.values, option.dest, args)
+
+if __name__ == '__main__':
+    usage = """%prog ARGS
+
+examples:
+    speaker identification
+        %prog [ -d GMM_DB ] [ -j JAR_PATH ] [ -b UBM_PATH ] -i INPUT_FILE
+
+        user interactive mode
+        %prog [ -d GMM_DB ] [ -j JAR_PATH ] [ -b UBM_PATH ] -i INPUT_FILE -u
+
+    speaker model creation
+        %prog [ -j JAR_PATH ] [ -b UBM_PATH ] -s SPEAKER_ID -g INPUT_FILE
+        %prog [ -j JAR_PATH ] [ -b UBM_PATH ] -s SPEAKER_ID -g WAVE WAVE ... WAVE  MERGED_WAVES """
+
+    parser = optparse.OptionParser(usage)
+    parser.add_option("-v", "--verbose", dest="verbose", action="store_true", 
+                      default=False, help="verbose mode")
+    parser.add_option("-q", "--quiet", dest="quiet_mode", action="store_true", 
+                      default=False, help="suppress prints")
+    parser.add_option("-n", "--noise", dest="noise_mode", action="store_true", 
+                      default=False, help="mode for noisy audio files")
+    parser.add_option("-k", "--keep-intermediatefiles", 
+                      dest="keep_intermediate_files", action="store_true", 
+                      help="keep all the intermediate files")
+    parser.add_option("-i", "--identify", dest="file_input", metavar="FILE", 
+                      help="identify speakers in video or audio file")
+    parser.add_option("-g", "--gmm", action="callback", 
+                      callback=_multiargs_callback, dest="waves_for_gmm", 
+                      help="build speaker model ")
+    parser.add_option("-s", "--speaker", dest="speakerid", 
+                      help="speaker identifier for model building")
+    parser.add_option("-d", "--db", type="string", dest="dir_gmm", 
+                      metavar="PATH", 
+                      help="set the speakers models db path (default: %s)" % configuration.DB_DIR)
+    parser.add_option("-j", "--jar", type="string", dest="jar", metavar="PATH",
+                      help="set the LIUM_SpkDiarization jar path (default: %s)" % configuration.LIUM_JAR)
+    parser.add_option("-b", "--ubm", type="string", dest="ubm", metavar="PATH",
+                      help="set the gmm UBM model path (default: %s)" % configuration.UBM_PATH)
+    parser.add_option("-u", "--user-interactive", dest="interactive",
+                      action="store_true", help="User interactive training")
+    parser.add_option("-f", "--output-format", dest="output_format",
+                      action="store", type="string", 
+                      help="output file format [ srt | json | xmp ] (default srt)")
+
+    (options, args) = parser.parse_args()
+    if options.keep_intermediate_files:
+        configuration.KEEP_INTERMEDIATE_FILES = options.keep_intermediate_files
+    if options.quiet_mode:
+        configuration.QUIET_MODE = options.quiet_mode
+    if options.dir_gmm:
+        configuration.DB_DIR = options.dir_gmm
+    if options.output_format:
+        if options.output_format not in ('srt', 'json', 'xmp'):
+            print 'output format (%s) wrong or not available' % options.output_format
+            parser.print_help()
+            exit(0)
+        configuration.OUTPUT_FORMAT = options.output_format
+    if options.jar:
+        configuration.LIUM_JAR = options.jar
+    if options.ubm:
+        configuration.UBM_PATH = options.ubm
+    utils.check_deps()
+    if options.file_input:
+        # create db istance
+        default_db = db.GMMVoiceDB(path=configuration.DB_DIR)
+        # create voiceid instance
+        cmanager = sr.Voiceid(vdb=default_db, filename=options.file_input)
+        if options.noise_mode:
+            # set the parameters for noisy audio diarization
+            cmanager.set_noise_mode(1)
+        # extract the speakers
+        cmanager.extract_speakers(interactive=options.interactive,
+                                  quiet=configuration.QUIET_MODE,
+                                  thrd_n=multiprocessing.cpu_count() * 5)
+        # write the output according to the given output format
+        cmanager.write_output(configuration.OUTPUT_FORMAT)
+        if not configuration.KEEP_INTERMEDIATE_FILES:
+            os.remove(cmanager.get_file_basename() + '.seg')
+            #os.remove(cmanager.get_file_basename() + '.mfcc')
+            w = cmanager.get_file_basename() + '.wav'
+            if cmanager.get_filename() != w:
+                os.remove(w)
+            shutil.rmtree(cmanager.get_file_basename())
+        exit(0)
+    if options.waves_for_gmm and options.speakerid:
+        file_basename = None
+        waves = options.waves_for_gmm
+        speaker = options.speakerid
+        if not speaker.isalnum():
+            print 'error: SPEAKER_ID must be alphanumeric'
+            exit(1)
+        w = None
+        if len(waves) > 1:
+            fm.merge_waves(waves[:-1], waves[-1])
+            w = waves[-1]
+        else:
+            w = waves[0]
+        ww = fm.file2wav(w)
+        basename, extension = os.path.splitext(ww)
+        file_basename = basename
+        default_db = db.GMMVoiceDB(path=configuration.DB_DIR)
+        default_db.add_model(file_basename, speaker)
+        if not configuration.KEEP_INTERMEDIATE_FILES:
+            try:
+                os.remove("%s.seg" % file_basename)
+                #os.remove("%s.mfcc" % file_basename)
+                os.remove("%s.init.gmm" % file_basename)
+                os.remove("%s.ident.seg" % file_basename)
+                if sys.platform == 'win32':
+                    os.remove("%s.c.gmm" % file_basename)
+                    os.remove("%s.uem.seg" % file_basename)
+                    os.remove("%s.gmm" % file_basename)
+            except OSError:
+                print 'WARNING: error deleting some intermediate files'
+        exit(0)
+    parser.print_help()
